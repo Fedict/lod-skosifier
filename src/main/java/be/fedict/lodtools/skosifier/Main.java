@@ -44,6 +44,7 @@ import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Date;
 import java.util.HashMap;
@@ -97,14 +98,13 @@ public class Main {
 	private static final List<String> SCOPE_LANGS = 
 			List.of("scope_nl", "scope_fr", "scope_de", "scope_en");
 		
-	private static final Map<String, IRI> PROPS = new HashMap<>();
-	static {
-		PROPS.put(OWL.SAMEAS.getLocalName().toLowerCase(), OWL.SAMEAS);
-		PROPS.put(SKOS.EXACT_MATCH.getLocalName().toLowerCase(), SKOS.EXACT_MATCH);
-		PROPS.put(SKOS.CLOSE_MATCH.getLocalName().toLowerCase(), SKOS.CLOSE_MATCH);
-		PROPS.put(SKOS.BROAD_MATCH.getLocalName().toLowerCase(), SKOS.BROAD_MATCH);
-		PROPS.put(SKOS.NARROW_MATCH.getLocalName().toLowerCase(), SKOS.NARROW_MATCH);
-	}
+	private static final Map<String, IRI> PROPS = Map.of(
+		OWL.SAMEAS.getLocalName().toLowerCase(), OWL.SAMEAS,
+		SKOS.EXACT_MATCH.getLocalName().toLowerCase(), SKOS.EXACT_MATCH,
+		SKOS.CLOSE_MATCH.getLocalName().toLowerCase(), SKOS.CLOSE_MATCH,
+		SKOS.BROAD_MATCH.getLocalName().toLowerCase(), SKOS.BROAD_MATCH,
+		SKOS.NARROW_MATCH.getLocalName().toLowerCase(), SKOS.NARROW_MATCH);
+
 	
 	/**
 	 * Read CSV input file (using ; as separator).
@@ -160,6 +160,8 @@ public class Main {
 		IRI scheme = F.createIRI(vocab);
 		M.add(scheme, RDF.TYPE, SKOS.CONCEPT_SCHEME);
 		
+		boolean hasNotation = Arrays.asList(header).contains("code");
+		
 		for(String[] row: rows) {
 			String id = row[0].replace(".", "_");
 			IRI node = F.createIRI(baseURI, id);
@@ -176,11 +178,18 @@ public class Main {
 			
 			M.add(node, RDF.TYPE, SKOS.CONCEPT);
 			M.add(node, SKOS.IN_SCHEME, scheme);
-			M.add(node, SKOS.NOTATION, F.createLiteral(row[0]));
+			
+			if (!hasNotation) {
+				M.add(node, SKOS.NOTATION, F.createLiteral(row[0]));
+			}
 			
 			for (int i = 2; i < header.length; i++) {
 				if (row[i].isEmpty()) {
 					continue;
+				}
+
+				if (header[i].equals("code")) {
+					M.add(node, SKOS.NOTATION, F.createLiteral(row[i].trim()));
 				}
 
 				// pref labels in different languages
